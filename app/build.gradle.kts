@@ -2,6 +2,7 @@ plugins {
     id("application")
     checkstyle
     id("org.sonarqube") version "6.3.1.5724"
+    jacoco
 }
 
 group = "hexlet.code"
@@ -29,4 +30,16 @@ sonar {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+}
+
+tasks.jacocoTestReport {
+    reports {
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir("jacocoHtml")
+    }
 }
