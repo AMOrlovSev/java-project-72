@@ -1,6 +1,7 @@
 plugins {
     id("application")
     checkstyle
+    id("org.sonarqube") version "6.3.1.5724"
 }
 
 group = "hexlet.code"
@@ -17,6 +18,13 @@ dependencies {
 
 application {
     mainClass = "hexlet.code.App"
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "AMOrlovSev_java-project-72")
+        property("sonar.organization", "amorlovsev")
+    }
 }
 
 tasks.test {
