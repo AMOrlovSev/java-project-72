@@ -4,6 +4,7 @@ plugins {
     id("org.sonarqube") version "6.3.1.5724"
     jacoco
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.freefair.lombok") version "8.13.1"
 }
 
 group = "hexlet.code"
@@ -14,9 +15,15 @@ repositories {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("org.slf4j:slf4j-simple:2.0.17")
+    implementation("io.javalin:javalin:6.6.0")
+    implementation("io.javalin:javalin-bundle:6.6.0")
+    implementation("io.javalin:javalin-rendering:6.6.0")
+
+    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 application {
