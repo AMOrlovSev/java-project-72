@@ -3,6 +3,7 @@ plugins {
     checkstyle
     id("org.sonarqube") version "6.3.1.5724"
     jacoco
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "hexlet.code"
@@ -15,6 +16,7 @@ repositories {
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    implementation("org.slf4j:slf4j-simple:2.0.17")
 }
 
 application {
