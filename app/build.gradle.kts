@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
     implementation("com.h2database:h2:2.3.232")
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.3")
     implementation("org.apache.commons:commons-text:1.13.1")
     implementation("gg.jte:jte:3.2.0")

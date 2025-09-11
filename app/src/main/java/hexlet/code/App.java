@@ -1,5 +1,6 @@
 package hexlet.code;
 
+import com.zaxxer.hikari.HikariConfig;
 import io.javalin.Javalin;
 import io.javalin.rendering.template.JavalinJte;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,10 @@ public class App {
     }
 
     public static Javalin getApp() throws IOException, SQLException {
+
+        var hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1;");
+
         var app = Javalin.create(config -> {
             config.bundledPlugins.enableDevLogging();
             config.fileRenderer(new JavalinJte());
