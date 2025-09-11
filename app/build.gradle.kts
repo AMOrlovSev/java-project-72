@@ -59,3 +59,16 @@ tasks.jacocoTestReport {
         html.outputLocation = layout.buildDirectory.dir("jacocoHtml")
     }
 }
+
+tasks {
+    shadowJar {
+        archiveBaseName.set("app")
+        archiveVersion.set("1.0-SNAPSHOT")
+        archiveClassifier.set("all")
+        mergeServiceFiles()
+    }
+
+    build {
+        dependsOn(shadowJar)
+    }
+}

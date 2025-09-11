@@ -13,7 +13,7 @@ RUN ./gradlew --no-daemon dependencies
 COPY app/src src
 COPY app/config config
 
-RUN ./gradlew --no-daemon build
+RUN ./gradlew --no-daemon shadowJar
 
 ENV JAVA_OPTS="-Xmx512M -Xms512M"
 EXPOSE 7070
