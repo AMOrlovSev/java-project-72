@@ -16,6 +16,10 @@ public class App {
         return Integer.valueOf(port);
     }
 
+    private static String getDatabaseUrl() {
+        return System.getenv().getOrDefault("JDBC_DATABASE_URL", "jdbc:h2:mem:project");
+    }
+
     public static void main(String[] args) throws IOException, SQLException {
         var app = getApp();
 
@@ -25,7 +29,7 @@ public class App {
     public static Javalin getApp() throws IOException, SQLException {
 
         var hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:h2:mem:project;DB_CLOSE_DELAY=-1;");
+        hikariConfig.setJdbcUrl(getDatabaseUrl());
 
         var app = Javalin.create(config -> {
             config.bundledPlugins.enableDevLogging();
