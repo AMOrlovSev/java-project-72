@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.resolve.ResourceCodeResolver;
+import hexlet.code.dto.MainPage;
 import hexlet.code.repository.BaseRepository;
 import io.javalin.Javalin;
 import io.javalin.rendering.template.JavalinJte;
@@ -16,6 +17,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
+
+import static io.javalin.rendering.template.TemplateUtil.model;
 
 @Slf4j
 public class App {
@@ -73,7 +76,10 @@ public class App {
             ctx.contentType("text/html; charset=utf-8");
         });
 
-        app.get("/", ctx -> ctx.result("Hello World"));
+        app.get("/", ctx -> {
+            var page = new MainPage();
+            ctx.render("index.jte", model("page", page));
+        });
 
         return app;
     }
