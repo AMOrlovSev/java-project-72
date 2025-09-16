@@ -5,6 +5,13 @@
 @template.layout.page(
 content = @`
     <div class="container mt-4">
+
+            @if(page.getFlash() != null)
+            <div class="alert alert-success" role="alert">
+                <p>${page.getFlash()}</p>
+            </div>
+            @endif
+
         <h1>Список URL</h1>
 
         @if(page.getUrls().isEmpty())

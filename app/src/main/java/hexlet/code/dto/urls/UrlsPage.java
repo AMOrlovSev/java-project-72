@@ -10,4 +10,5 @@ import java.util.List;
 @Getter
 public class UrlsPage {
     private List<Url> urls;
+    String flash;
 }

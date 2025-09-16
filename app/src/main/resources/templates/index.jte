@@ -5,6 +5,13 @@
 content = @`
     <section>
         <div class="container-fluid bg-dark p-5">
+
+            @if(page.getFlash() != null)
+                <div class="alert alert-danger" role="alert">
+                    <p>${page.getFlash()}</p>
+                </div>
+            @endif
+
             <div class="row">
                 <div class="col-md-10 col-lg-8 mx-auto text-white">
                     <h1 class="display-3 mb-0">Анализатор страниц</h1>
