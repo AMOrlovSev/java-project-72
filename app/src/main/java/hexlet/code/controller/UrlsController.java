@@ -7,6 +7,9 @@ import hexlet.code.repository.UrlRepository;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.SQLException;
 
 import static io.javalin.rendering.template.TemplateUtil.model;
@@ -20,10 +23,54 @@ public class UrlsController {
 
     public static void create(Context ctx) throws SQLException {
         var urlInput = ctx.formParam("url");
-        var name = urlInput;
-        var url = new Url(name);
-        UrlRepository.save(url);
-        ctx.redirect("/urls");
+
+        if (urlInput == null || urlInput.trim().isEmpty()) {
+            ctx.status(400);
+            ctx.result("URL cannot be empty");
+            return;
+        }
+
+        try {
+            var uri = new URI(urlInput.trim());
+            var urlObject = uri.toURL();
+
+            if (!uri.isAbsolute()) {
+                ctx.status(400);
+                ctx.result("URL must be absolute (include protocol like http:// or https://)");
+                return;
+            }
+
+            String normalizedUrl;
+            if (urlObject.getPort() == -1 || urlObject.getPort() == urlObject.getDefaultPort()) {
+                normalizedUrl = urlObject.getProtocol() + "://" + urlObject.getHost();
+            } else {
+                normalizedUrl = urlObject.getProtocol() + "://" + urlObject.getHost() + ":" + urlObject.getPort();
+            }
+
+            if (UrlRepository.findByName(normalizedUrl).isEmpty())
+            {
+                var url = new Url(normalizedUrl);
+                UrlRepository.save(url);
+                ctx.redirect("/urls");
+            } else {
+                ctx.status(400);
+                ctx.result("Уже есть в БД");
+            }
+
+
+        } catch (URISyntaxException e) {
+            ctx.status(400);
+            ctx.result("Invalid URL syntax: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            ctx.status(400);
+            ctx.result("Invalid URL: " + e.getMessage());
+        } catch (MalformedURLException e) {
+            ctx.status(400);
+            ctx.result("Malformed URL: " + e.getMessage());
+        } catch (Exception e) {
+            ctx.status(500);
+            ctx.result("Server error: " + e.getMessage());
+        }
     }
 
     public static void show(Context ctx) throws SQLException {
