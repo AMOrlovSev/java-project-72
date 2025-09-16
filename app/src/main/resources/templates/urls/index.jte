@@ -25,14 +25,12 @@ content = @`
                     <tbody>
                     @for(var url : page.getUrls())
                         <tr>
-                            <td class="fw-bold">${url.getId()}</td>
                             <td>
-                                <a href="${url.getName()}"
-                                   target="_blank"
-                                   class="text-decoration-none">
-                                    ${url.getName()}
+                                <a href="${"/urls/"+url.getId()}" class="text-decoration-none">
+                                    ${url.getId()}
                                 </a>
                             </td>
+                            <td class="fw-bold">${url.getName()}</td>
                             <td>
                                 ${url.getCreatedAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))}
                             </td>
