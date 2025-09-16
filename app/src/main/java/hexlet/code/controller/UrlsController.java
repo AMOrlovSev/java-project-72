@@ -24,7 +24,6 @@ public class UrlsController {
 
     public static void create(Context ctx) throws SQLException {
         var urlInput = ctx.formParam("url");
-        String flash = ctx.consumeSessionAttribute("flash");
 
         if (urlInput == null || urlInput.trim().isEmpty()) {
             ctx.status(400);
@@ -39,7 +38,7 @@ public class UrlsController {
 
             if (!uri.isAbsolute()) {
                 ctx.status(400);
-                ctx.sessionAttribute("flash", "URL must be absolute (include protocol like http:// or https://)");
+                ctx.sessionAttribute("flash", "Некорректный URL");
                 ctx.redirect("/");
                 return;
             }
@@ -53,28 +52,20 @@ public class UrlsController {
 
             if (UrlRepository.findByName(normalizedUrl).isPresent()) {
                 ctx.status(409);
-                ctx.sessionAttribute("flash", "URL already exists in database");
+                ctx.sessionAttribute("flash", "Страница уже существует");
                 ctx.redirect("/");
                 return;
             }
 
             var url = new Url(normalizedUrl);
             UrlRepository.save(url);
-            ctx.sessionAttribute("flash", "URL has been created!");
+            ctx.sessionAttribute("flash", "Страница успешно добавлена");
             ctx.redirect("/urls");
 
 
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
             ctx.status(400);
-            ctx.sessionAttribute("flash", "Invalid URL syntax: " + e.getMessage());
-            ctx.redirect("/");
-        } catch (IllegalArgumentException e) {
-            ctx.status(400);
-            ctx.sessionAttribute("flash", "Invalid URL: " + e.getMessage());
-            ctx.redirect("/");
-        } catch (MalformedURLException e) {
-            ctx.status(400);
-            ctx.sessionAttribute("flash", "Malformed URL: " + e.getMessage());
+            ctx.sessionAttribute("flash", "Некорректный URL");
             ctx.redirect("/");
         } catch (Exception e) {
             ctx.status(500);
