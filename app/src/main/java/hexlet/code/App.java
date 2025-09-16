@@ -77,11 +77,6 @@ public class App {
             ctx.contentType("text/html; charset=utf-8");
         });
 
-        app.get("/", ctx -> {
-            var page = new MainPage();
-            ctx.render("index.jte", model("page", page));
-        });
-
         app.get("/", RootController::index);
 
         return app;
