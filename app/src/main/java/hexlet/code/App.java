@@ -6,6 +6,7 @@ import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.resolve.ResourceCodeResolver;
 import hexlet.code.controller.RootController;
+import hexlet.code.controller.UrlsController;
 import hexlet.code.dto.MainPage;
 import hexlet.code.repository.BaseRepository;
 import io.javalin.Javalin;
@@ -78,6 +79,9 @@ public class App {
         });
 
         app.get("/", RootController::index);
+
+        app.get("/urls", UrlsController::index);
+        app.post("/urls", UrlsController::create);
 
         return app;
     }
