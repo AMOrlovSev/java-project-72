@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.resolve.ResourceCodeResolver;
+import hexlet.code.controller.RootController;
 import hexlet.code.dto.MainPage;
 import hexlet.code.repository.BaseRepository;
 import io.javalin.Javalin;
@@ -80,6 +81,8 @@ public class App {
             var page = new MainPage();
             ctx.render("index.jte", model("page", page));
         });
+
+        app.get("/", RootController::index);
 
         return app;
     }
