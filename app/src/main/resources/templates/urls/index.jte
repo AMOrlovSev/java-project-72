@@ -4,55 +4,52 @@
 
 @template.layout.page(
 content = @`
-    <div class="container mt-4">
-
-            @if(page.getFlash() != null)
-            <div class="alert alert-success" role="alert">
-                <p>${page.getFlash()}</p>
-            </div>
-            @endif
-
-        <h1>Список URL</h1>
-
-        @if(page.getUrls().isEmpty())
-            <div class="alert alert-info mt-3" role="alert">
-                Список URL пуст
-            </div>
-        @else
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
+    @if(page.getFlash() != null)
+        <div class="rounded-0 m-0 alert alert-dismissible fade show alert-success" role="alert">
+            <p class="m-0">${page.getFlash()}</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    <section>
+        <div class="container-lg mt-5">
+            <h1>Сайты</h1>
+            @if(page.getUrls().isEmpty())
+                <div class="alert alert-secondary mt-3 rounded-0 m-0 fade show" role="alert">
+                    Список пуст
+                </div>
+            @else
+                <table class="table table-bordered table-striped table-hover table-responsive mt-3">
                     <thead class="table-dark">
                     <tr>
-                        <th>ID</th>
-                        <th>URL</th>
-                        <th>Дата создания</th>
-                        <th>Действия</th>
+                        <th class="col-1">ID</th>
+                        <th>Имя</th>
+                        <th class="col-2">Последняя проверка</th>
+                        <th class="col-1">Код ответа</th>
                     </tr>
                     </thead>
                     <tbody>
                     @for(var url : page.getUrls())
                         <tr>
                             <td>
+                                ${url.getId()}
+                            </td>
+                            <td>
                                 <a href="${"/urls/"+url.getId()}" class="text-decoration-none">
-                                    ${url.getId()}
+                                    ${url.getName()}
                                 </a>
                             </td>
-                            <td class="fw-bold">${url.getName()}</td>
                             <td>
-                                ${url.getCreatedAt().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))}
+
                             </td>
                             <td>
-                                <a href="/urls/${url.getId()}"
-                                   class="btn btn-outline-primary btn-sm">
-                                    Просмотр
-                                </a>
+
                             </td>
                         </tr>
                     @endfor
                     </tbody>
                 </table>
-            </div>
-        @endif
-    </div>
+            @endif
+        </div>
+    </section>
 `
 )

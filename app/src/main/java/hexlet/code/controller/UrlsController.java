@@ -1,5 +1,6 @@
 package hexlet.code.controller;
 
+import hexlet.code.dto.MainPage;
 import hexlet.code.dto.urls.UrlPage;
 import hexlet.code.dto.urls.UrlsPage;
 import hexlet.code.model.Url;
@@ -27,7 +28,7 @@ public class UrlsController {
 
         if (urlInput == null || urlInput.trim().isEmpty()) {
             ctx.status(400);
-            ctx.sessionAttribute("flash", "URL cannot be empty");
+            ctx.sessionAttribute("flash", "Некорректный URL");
             ctx.redirect("/");
             return;
         }
@@ -53,7 +54,7 @@ public class UrlsController {
             if (UrlRepository.findByName(normalizedUrl).isPresent()) {
                 ctx.status(409);
                 ctx.sessionAttribute("flash", "Страница уже существует");
-                ctx.redirect("/");
+                ctx.redirect("/urls");
                 return;
             }
 
@@ -78,7 +79,8 @@ public class UrlsController {
         var id = ctx.pathParamAsClass("id", Long.class).get();
         var url = UrlRepository.find(id)
                 .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
-        var page = new UrlPage(url);
+        String flash = ctx.consumeSessionAttribute("flash");
+        var page = new UrlPage(url, flash);
         ctx.render("urls/show.jte", model("page", page));
     }
 }
