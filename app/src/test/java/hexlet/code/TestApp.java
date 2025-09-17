@@ -7,6 +7,7 @@ import io.javalin.Javalin;
 import io.javalin.http.HttpStatus;
 import io.javalin.rendering.template.JavalinJte;
 import io.javalin.testtools.JavalinTest;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,7 @@ import static hexlet.code.App.createTemplateEngine;
 import static hexlet.code.App.readResourceFile;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+@Slf4j
 public class TestApp {
     private static final String TEST_DB_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
     private Javalin appTest;
@@ -57,6 +59,32 @@ public class TestApp {
             var response = client.get("/");
             assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
             assertThat(response.body().string()).contains("Анализатор страниц");
+        });
+    }
+
+    @Test
+    void testUrlsPageEmpty() {
+        JavalinTest.test(appTest, (server, client) -> {
+            var response = client.get("/urls");
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
+            assertThat(response.body().string())
+                    .contains("Сайты")
+                    .contains("Список пуст");
+        });
+    }
+
+    @Test
+    void testCreateUrlSuccess() {
+        JavalinTest.test(appTest, (server, client) -> {
+            String formData = "url=https://example.com";
+
+            var response = client.post("/urls", formData);
+
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
+
+            var redirectResponse = client.get("/urls");
+            var responseBody = redirectResponse.body().string();
+            assertThat(responseBody).contains("https://example.com");
         });
     }
 }
