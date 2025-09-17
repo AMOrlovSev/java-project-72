@@ -22,7 +22,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.3")
     implementation("org.apache.commons:commons-text:1.13.1")
     implementation("gg.jte:jte:3.2.1")
-    implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("io.javalin:javalin:6.6.0")
     implementation("io.javalin:javalin-bundle:6.6.0")
     implementation("io.javalin:javalin-rendering:6.6.0")
