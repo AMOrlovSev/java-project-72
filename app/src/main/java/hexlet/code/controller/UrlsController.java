@@ -1,5 +1,6 @@
 package hexlet.code.controller;
 
+import hexlet.code.dto.MainPage;
 import hexlet.code.dto.urls.UrlPage;
 import hexlet.code.dto.urls.UrlsPage;
 import hexlet.code.model.Url;
@@ -32,7 +33,9 @@ public class UrlsController {
             if (!uri.isAbsolute()) {
                 ctx.status(400);
                 ctx.sessionAttribute("flash", "Некорректный URL");
-                ctx.redirect("/");
+                String flash = ctx.consumeSessionAttribute("flash");
+                var page = new MainPage(flash);
+                ctx.render("index.jte", model("page", page));
                 return;
             }
 
@@ -62,11 +65,15 @@ public class UrlsController {
         } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
             ctx.status(400);
             ctx.sessionAttribute("flash", "Некорректный URL");
-            ctx.redirect("/");
+            String flash = ctx.consumeSessionAttribute("flash");
+            var page = new MainPage(flash);
+            ctx.render("index.jte", model("page", page));
         } catch (Exception e) {
             ctx.status(500);
             ctx.sessionAttribute("flash", "Server error: " + e.getMessage());
-            ctx.redirect("/");
+            String flash = ctx.consumeSessionAttribute("flash");
+            var page = new MainPage(flash);
+            ctx.render("index.jte", model("page", page));
         }
     }
 
