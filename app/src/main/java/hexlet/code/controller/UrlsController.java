@@ -25,13 +25,6 @@ public class UrlsController {
     public static void create(Context ctx) throws SQLException {
         var urlInput = ctx.formParam("url");
 
-        if (urlInput == null || urlInput.trim().isEmpty()) {
-            ctx.status(400);
-            ctx.sessionAttribute("flash", "Некорректный URL");
-            ctx.redirect("/");
-            return;
-        }
-
         try {
             var uri = new URI(urlInput.trim());
             var urlObject = uri.toURL();
@@ -53,7 +46,10 @@ public class UrlsController {
             if (UrlRepository.findByName(normalizedUrl).isPresent()) {
                 ctx.status(409);
                 ctx.sessionAttribute("flash", "Страница уже существует");
-                ctx.redirect("/urls");
+                var urls = UrlRepository.getEntities();
+                String flash = ctx.consumeSessionAttribute("flash");
+                var page = new UrlsPage(urls, flash);
+                ctx.render("urls/index.jte", model("page", page));
                 return;
             }
 
