@@ -31,28 +31,14 @@ public class UrlsController {
             var urlObject = uri.toURL();
 
             if (!uri.isAbsolute()) {
-                ctx.status(400);
-                ctx.sessionAttribute("flash", "Некорректный URL");
-                String flash = ctx.consumeSessionAttribute("flash");
-                var page = new MainPage(flash);
-                ctx.render("index.jte", model("page", page));
+                renderMainPageWithError(ctx, 400, "Некорректный URL");
                 return;
             }
 
-            String normalizedUrl;
-            if (urlObject.getPort() == -1 || urlObject.getPort() == urlObject.getDefaultPort()) {
-                normalizedUrl = urlObject.getProtocol() + "://" + urlObject.getHost();
-            } else {
-                normalizedUrl = urlObject.getProtocol() + "://" + urlObject.getHost() + ":" + urlObject.getPort();
-            }
+            String normalizedUrl = normalizeUrl(urlObject);
 
             if (UrlRepository.findByName(normalizedUrl).isPresent()) {
-                ctx.status(409);
-                ctx.sessionAttribute("flash", "Страница уже существует");
-                var urls = UrlRepository.getEntities();
-                String flash = ctx.consumeSessionAttribute("flash");
-                var page = new UrlsPage(urls, flash);
-                ctx.render("urls/index.jte", model("page", page));
+                renderUrlsPageWithError(ctx, 409, "Страница уже существует");
                 return;
             }
 
@@ -63,17 +49,9 @@ public class UrlsController {
 
 
         } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
-            ctx.status(400);
-            ctx.sessionAttribute("flash", "Некорректный URL");
-            String flash = ctx.consumeSessionAttribute("flash");
-            var page = new MainPage(flash);
-            ctx.render("index.jte", model("page", page));
+            renderMainPageWithError(ctx, 400, "Некорректный URL");
         } catch (Exception e) {
-            ctx.status(500);
-            ctx.sessionAttribute("flash", "Server error: " + e.getMessage());
-            String flash = ctx.consumeSessionAttribute("flash");
-            var page = new MainPage(flash);
-            ctx.render("index.jte", model("page", page));
+            renderMainPageWithError(ctx, 500, "Server error: " + e.getMessage());
         }
     }
 
@@ -85,4 +63,29 @@ public class UrlsController {
         var page = new UrlPage(url, flash);
         ctx.render("urls/show.jte", model("page", page));
     }
+
+
+
+
+    private static String normalizeUrl(java.net.URL urlObject) {
+        if (urlObject.getPort() == -1 || urlObject.getPort() == urlObject.getDefaultPort()) {
+            return urlObject.getProtocol() + "://" + urlObject.getHost();
+        } else {
+            return urlObject.getProtocol() + "://" + urlObject.getHost() + ":" + urlObject.getPort();
+        }
+    }
+
+    private static void renderMainPageWithError(Context ctx, int status, String errorMessage) {
+        ctx.status(status);
+        var page = new MainPage(errorMessage);
+        ctx.render("index.jte", model("page", page));
+    }
+
+    private static void renderUrlsPageWithError(Context ctx, int status, String errorMessage) throws SQLException {
+        ctx.status(status);
+        var urls = UrlRepository.getEntities();
+        var page = new UrlsPage(urls, errorMessage);
+        ctx.render("urls/index.jte", model("page", page));
+    }
 }
+
