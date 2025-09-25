@@ -30,6 +30,9 @@ dependencies {
     implementation("com.konghq:unirest-java-core")
     implementation("com.konghq:unirest-modules-jackson")
 
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     testImplementation("org.assertj:assertj-core:3.27.3")
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
