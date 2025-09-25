@@ -41,6 +41,10 @@ public class UrlRepository extends BaseRepository {
                 var url = new Url(name);
                 url.setId(id);
                 url.setCreatedAt(createdAt);
+
+                var checks = UrlCheckRepository.findByUrlId(id);
+                url.setUrlChecks(checks);
+
                 return Optional.of(url);
             }
             return Optional.empty();
@@ -79,6 +83,12 @@ public class UrlRepository extends BaseRepository {
                 var url = new Url(name);
                 url.setId(id);
                 url.setCreatedAt(createdAt);
+
+                var checks = UrlCheckRepository.findByUrlId(id);
+                if (!checks.isEmpty()) {
+                    url.getUrlChecks().add(checks.get(0));
+                }
+
                 result.add(url);
             }
             return result;

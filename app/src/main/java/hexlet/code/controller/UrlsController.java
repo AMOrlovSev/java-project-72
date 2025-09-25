@@ -4,9 +4,14 @@ import hexlet.code.dto.MainPage;
 import hexlet.code.dto.urls.UrlPage;
 import hexlet.code.dto.urls.UrlsPage;
 import hexlet.code.model.Url;
+import hexlet.code.model.UrlCheck;
+import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
+import kong.unirest.core.HttpResponse;
+import kong.unirest.core.Unirest;
+import kong.unirest.core.UnirestException;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -62,6 +67,44 @@ public class UrlsController {
         String flash = ctx.consumeSessionAttribute("flash");
         var page = new UrlPage(url, flash);
         ctx.render("urls/show.jte", model("page", page));
+    }
+
+    public static void check(Context ctx) throws SQLException {
+        var id = ctx.pathParamAsClass("id", Long.class).get();
+
+        var url = UrlRepository.find(id)
+                .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
+
+        try {
+            HttpResponse<String> response = Unirest.get(url.getName())
+                    .asString();
+
+            int statusCode = response.getStatus();
+            String htmlContent = response.getBody();
+
+            String title = extractWithRegex(htmlContent, "<title>(.*?)</title>");
+            String h1 = extractWithRegex(htmlContent, "<h1>(.*?)</h1>");
+            String description = extractWithRegex(htmlContent, "<meta name=\"description\" content=\"(.*?)\"");
+
+            var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
+            UrlCheckRepository.save(urlCheck);
+
+            ctx.sessionAttribute("flash", "Страница успешно проверена");
+
+        } catch (UnirestException e) {
+            ctx.sessionAttribute("flash", "Ошибка при проверке страницы: " + e.getMessage());
+        }
+
+        ctx.redirect("/urls/" + id);
+    }
+
+    private static String extractWithRegex(String html, String regex) {
+        if (html == null) return "";
+
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex,
+                java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+        java.util.regex.Matcher matcher = pattern.matcher(html);
+        return matcher.find() ? matcher.group(1).trim() : "";
     }
 
 

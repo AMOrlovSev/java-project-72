@@ -47,11 +47,21 @@ content = @`
                     <th class="col-2">Дата проверки</th>
                 </tr></thead>
                 <tbody>
-
+                    @if(!page.getUrl().getUrlChecks().isEmpty())
+                        @for(var check : page.getUrl().getUrlChecks())
+                            <tr>
+                                <td>${check.getId()}</td>
+                                <td>${check.getStatusCode()}</td>
+                                <td>${check.getTitle()}</td>
+                                <td>${check.getH1()}</td>
+                                <td>${check.getDescription()}</td>
+                                <td>${check.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))}</td>
+                            </tr>
+                        @endfor
+                    @endif
                 </tbody>
             </table>
-            <%--            @if(page.getUrls().isEmpty())--%>
-            @if(true)
+            @if(page.getUrl().getUrlChecks().isEmpty())
                 <div class="alert alert-secondary mt-0 rounded-0 m-0 fade show" role="alert">
                     Список пуст
                 </div>

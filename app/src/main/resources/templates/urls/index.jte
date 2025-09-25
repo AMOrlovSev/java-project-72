@@ -39,10 +39,14 @@ content = @`
                                 </a>
                             </td>
                             <td>
-
+                                @if(!url.getUrlChecks().isEmpty())
+                                    ${url.getUrlChecks().get(0).getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))}
+                                @endif
                             </td>
                             <td>
-
+                                @if(!url.getUrlChecks().isEmpty())
+                                    ${url.getUrlChecks().get(0).getStatusCode()}
+                                @endif
                             </td>
                         </tr>
                     @endfor
