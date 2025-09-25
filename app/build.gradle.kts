@@ -29,6 +29,7 @@ dependencies {
     implementation(platform("com.konghq:unirest-java-bom:4.5.1"))
     implementation("com.konghq:unirest-java-core")
     implementation("com.konghq:unirest-modules-jackson")
+    implementation("org.jsoup:jsoup:1.17.2")
 
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("com.squareup.okhttp3:okhttp:4.12.0")

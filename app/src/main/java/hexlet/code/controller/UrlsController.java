@@ -18,6 +18,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
 import static io.javalin.rendering.template.TemplateUtil.model;
 
 public class UrlsController {
@@ -82,9 +86,25 @@ public class UrlsController {
             int statusCode = response.getStatus();
             String htmlContent = response.getBody();
 
-            String title = extractWithRegex(htmlContent, "<title>(.*?)</title>");
-            String h1 = extractWithRegex(htmlContent, "<h1>(.*?)</h1>");
-            String description = extractWithRegex(htmlContent, "<meta name=\"description\" content=\"(.*?)\"");
+            Document doc = Jsoup.parse(htmlContent);
+
+            String title = "";
+            Element titleElement = doc.selectFirst("title");
+            if (titleElement != null) {
+                title = titleElement.text().trim();
+            }
+
+            String h1 = "";
+            Element h1Element = doc.selectFirst("h1");
+            if (h1Element != null) {
+                h1 = h1Element.text().trim();
+            }
+
+            String description = "";
+            Element metaDescription = doc.selectFirst("meta[name=description]");
+            if (metaDescription != null) {
+                description = metaDescription.attr("content").trim();
+            }
 
             var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
             UrlCheckRepository.save(urlCheck);
@@ -96,15 +116,6 @@ public class UrlsController {
         }
 
         ctx.redirect("/urls/" + id);
-    }
-
-    private static String extractWithRegex(String html, String regex) {
-        if (html == null) return "";
-
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex,
-                java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
-        java.util.regex.Matcher matcher = pattern.matcher(html);
-        return matcher.find() ? matcher.group(1).trim() : "";
     }
 
 
