@@ -44,6 +44,7 @@ application {
     mainClass = "hexlet.code.App"
 }
 
+
 sonar {
     properties {
         property("sonar.projectKey", "AMOrlovSev_java-project-72")
