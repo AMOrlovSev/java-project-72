@@ -4,5 +4,8 @@ APP_DIR = app
 %:
 	$(MAKE) -C $(APP_DIR) $@
 
-fix-permissions:
+setup:
 	chmod +x $(APP_DIR)/gradlew
+	$(MAKE) -C $(APP_DIR) setup
+
+.PHONY: setup
