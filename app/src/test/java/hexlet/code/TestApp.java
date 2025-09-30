@@ -40,7 +40,7 @@ public class TestApp {
     }
 
     @BeforeEach
-    void setUp() throws SQLException, IOException {
+    final void setUp() throws SQLException, IOException {
         var hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl(TEST_DB_URL);
 
