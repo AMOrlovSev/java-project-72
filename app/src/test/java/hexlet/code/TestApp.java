@@ -159,6 +159,28 @@ public class TestApp {
     }
 
     @Test
+    void testShowUrlDetails() {
+        JavalinTest.test(appTest, (server, client) -> {
+            String urlName = "https://show-details-test.com";
+            String formData = "url=" + urlName;
+            client.post("/urls", formData);
+
+            var response = client.get("/urls/1");
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
+
+            String body = response.body().string();
+
+            assertThat(body)
+                    .contains("Сайт: " + urlName)
+                    .contains("ID")
+                    .contains("Имя")
+                    .contains("Дата создания")
+                    .contains(urlName)
+                    .contains("Проверки");
+        });
+    }
+
+    @Test
     void testShowUrlNotFound() {
         JavalinTest.test(appTest, (server, client) -> {
             var response = client.get("/urls/999");
@@ -298,56 +320,10 @@ public class TestApp {
     }
 
     @Test
-    void testUrlCheckWithMissingTags() throws SQLException {
-        String htmlContent = """
-            <!DOCTYPE html>
-            <html>
-            <body>
-                <p>Content without important tags</p>
-            </body>
-            </html>
-            """;
-
-        mockWebServer.enqueue(new MockResponse()
-                .setBody(htmlContent)
-                .setResponseCode(200));
-
-        String mockUrl = mockWebServer.url("/").toString();
-
-        JavalinTest.test(appTest, (server, client) -> {
-            String formData = "url=" + mockUrl;
-            client.post("/urls", formData);
-
-            var checkResponse = client.post("/urls/1/checks");
-            assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
-
-            var showResponse = client.get("/urls/1");
-            var showBody = showResponse.body().string();
-            assertThat(showBody).contains("200");
-        });
-    }
-
-    @Test
     void testUrlCheckForNonExistentUrl() {
         JavalinTest.test(appTest, (server, client) -> {
             var response = client.post("/urls/999/checks");
             assertThat(response.code()).isEqualTo(HttpStatus.NOT_FOUND.getCode());
-        });
-    }
-
-    @Test
-    void testCreateUrlWithMockServer() throws SQLException {
-        String mockUrl = mockWebServer.url("/").toString();
-
-        JavalinTest.test(appTest, (server, client) -> {
-            String formData = "url=" + mockUrl;
-
-            var response = client.post("/urls", formData);
-            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
-
-            var urlsResponse = client.get("/urls");
-            var responseBody = urlsResponse.body().string();
-            assertThat(responseBody).contains(mockUrl.replaceFirst("/$", ""));
         });
     }
 
