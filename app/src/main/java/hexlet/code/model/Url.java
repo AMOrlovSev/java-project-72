@@ -20,7 +20,7 @@ public class Url {
         this.urlChecks = new ArrayList<>();
     }
 
-    final public void addCheck(UrlCheck urlCheck) {
+    public final void addCheck(UrlCheck urlCheck) {
         urlChecks.add(urlCheck);
         urlCheck.setUrlId(id);
     }
