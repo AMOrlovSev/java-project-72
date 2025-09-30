@@ -1,8 +1,8 @@
-# Корневой Makefile - делегирует выполнение в папку app
-
-# Определяем переменную с путем к вложенной папке
+# Корневой Makefile
 APP_DIR = app
 
-# Цели, которые будут выполняться в папке app
 %:
 	$(MAKE) -C $(APP_DIR) $@
+
+fix-permissions:
+	chmod +x $(APP_DIR)/gradlew
