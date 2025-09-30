@@ -1,11 +1,14 @@
 # Для Unix/Linux/MacOS
+setup:
+	chmod +x ./gradlew
+	./gradlew clean build
+
 run-dist:
 	./build/install/app/bin/app
 
-build:
-	./gradlew clean build
+build: setup
 
-.PHONY: build
+.PHONY: build setup run-dist
 
 
 
