@@ -13,15 +13,13 @@ import io.javalin.http.NotFoundResponse;
 import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
 import kong.unirest.core.UnirestException;
-
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.sql.SQLException;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.sql.SQLException;
 
 import static io.javalin.rendering.template.TemplateUtil.model;
 
@@ -37,34 +35,31 @@ public class UrlsController {
     public static void create(Context ctx) throws SQLException {
         var urlInput = ctx.formParam("url");
 
+        URI uri;
         try {
-            var uri = new URI(urlInput.trim());
-            var urlObject = uri.toURL();
-
-            if (!uri.isAbsolute()) {
-                renderMainPageWithError(ctx, 400, "Некорректный URL");
-                return;
-            }
-
-            String normalizedUrl = normalizeUrl(urlObject);
-
-            if (UrlRepository.findByName(normalizedUrl).isPresent()) {
-                renderUrlsPageWithInfo(ctx, 409, "Страница уже существует");
-                return;
-            }
-
-            var url = new Url(normalizedUrl);
-            UrlRepository.save(url);
-            ctx.sessionAttribute("flash", "Страница успешно добавлена");
-            ctx.sessionAttribute("flashType", "success");
-            ctx.redirect(NamedRoutes.urlsPath());
-
-
-        } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
+            uri = new URI(urlInput.trim());
+        } catch (URISyntaxException e) {
             renderMainPageWithError(ctx, 400, "Некорректный URL");
-        } catch (Exception e) {
-            renderMainPageWithError(ctx, 500, "Server error: " + e.getMessage());
+            return;
         }
+
+        if (!uri.isAbsolute()) {
+            renderMainPageWithError(ctx, 400, "Некорректный URL");
+            return;
+        }
+
+        String normalizedUrl = normalizeUrl(uri);
+
+        if (UrlRepository.findByName(normalizedUrl).isPresent()) {
+            renderUrlsPageWithInfo(ctx, 409, "Страница уже существует");
+            return;
+        }
+
+        var url = new Url(normalizedUrl);
+        UrlRepository.save(url);
+        ctx.sessionAttribute("flash", "Страница успешно добавлена");
+        ctx.sessionAttribute("flashType", "success");
+        ctx.redirect(NamedRoutes.urlsPath());
     }
 
     public static void show(Context ctx) throws SQLException {
@@ -83,56 +78,64 @@ public class UrlsController {
         var url = UrlRepository.find(id)
                 .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
 
+        HttpResponse<String> response;
         try {
-            HttpResponse<String> response = Unirest.get(url.getName())
-                    .asString();
-
-            int statusCode = response.getStatus();
-            String htmlContent = response.getBody();
-
-            Document doc = Jsoup.parse(htmlContent);
-
-            String title = "";
-            Element titleElement = doc.selectFirst("title");
-            if (titleElement != null) {
-                title = titleElement.text().trim();
-            }
-
-            String h1 = "";
-            Element h1Element = doc.selectFirst("h1");
-            if (h1Element != null) {
-                h1 = h1Element.text().trim();
-            }
-
-            String description = "";
-            Element metaDescription = doc.selectFirst("meta[name=description]");
-            if (metaDescription != null) {
-                description = metaDescription.attr("content").trim();
-            }
-
-            var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
-            UrlCheckRepository.save(urlCheck);
-
-            ctx.sessionAttribute("flash", "Страница успешно проверена");
-            ctx.sessionAttribute("flashType", "success");
-
+            response = Unirest.get(url.getName()).asString();
         } catch (UnirestException e) {
             ctx.sessionAttribute("flash", "Ошибка при проверке страницы: " + e.getMessage());
             ctx.sessionAttribute("flashType", "danger");
+            ctx.redirect(NamedRoutes.urlPath(id));
+            return;
         }
 
+        int statusCode = response.getStatus();
+        String htmlContent = response.getBody();
+
+        Document doc = Jsoup.parse(htmlContent);
+
+        String title = "";
+        Element titleElement = doc.selectFirst("title");
+        if (titleElement != null) {
+            title = titleElement.text().trim();
+        }
+
+        String h1 = "";
+        Element h1Element = doc.selectFirst("h1");
+        if (h1Element != null) {
+            h1 = h1Element.text().trim();
+        }
+
+        String description = "";
+        Element metaDescription = doc.selectFirst("meta[name=description]");
+        if (metaDescription != null) {
+            description = metaDescription.attr("content").trim();
+        }
+
+        var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
+        UrlCheckRepository.save(urlCheck);
+
+        ctx.sessionAttribute("flash", "Страница успешно проверена");
+        ctx.sessionAttribute("flashType", "success");
         ctx.redirect(NamedRoutes.urlPath(id));
     }
 
 
 
 
-    private static String normalizeUrl(java.net.URL urlObject) {
-        if (urlObject.getPort() == -1 || urlObject.getPort() == urlObject.getDefaultPort()) {
-            return urlObject.getProtocol() + "://" + urlObject.getHost();
+    private static String normalizeUrl(URI uri) {
+        String scheme = uri.getScheme().toLowerCase();
+        String host = uri.getHost().toLowerCase();
+        int port = uri.getPort();
+
+        if (port == -1 || port == getDefaultPort(scheme)) {
+            return scheme + "://" + host;
         } else {
-            return urlObject.getProtocol() + "://" + urlObject.getHost() + ":" + urlObject.getPort();
+            return scheme + "://" + host + ":" + port;
         }
+    }
+
+    private static int getDefaultPort(String scheme) {
+        return scheme.equals("https") ? 443 : 80;
     }
 
     private static void renderMainPageWithError(Context ctx, int status, String errorMessage) {
