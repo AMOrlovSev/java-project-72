@@ -8,7 +8,8 @@ import static io.javalin.rendering.template.TemplateUtil.model;
 public class RootController {
     public static void index(Context ctx) {
         String flash = ctx.consumeSessionAttribute("flash");
-        var page = new MainPage(flash);
+        String flashType = ctx.consumeSessionAttribute("flashType");
+        var page = new MainPage(flash, flashType);
         ctx.render("index.jte", model("page", page));
     }
 }

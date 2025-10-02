@@ -8,5 +8,6 @@ import lombok.Getter;
 @Getter
 public class UrlPage {
     private Url url;
-    String flash;
+    private String flash;
+    private String flashType;
 }

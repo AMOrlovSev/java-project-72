@@ -28,8 +28,9 @@ import static io.javalin.rendering.template.TemplateUtil.model;
 public class UrlsController {
     public static void index(Context ctx) throws SQLException {
         String flash = ctx.consumeSessionAttribute("flash");
+        String flashType = ctx.consumeSessionAttribute("flashType");
         var urls = UrlRepository.getEntities();
-        var page = new UrlsPage(urls, flash);
+        var page = new UrlsPage(urls, flash, flashType);
         ctx.render("urls/index.jte", model("page", page));
     }
 
@@ -48,13 +49,14 @@ public class UrlsController {
             String normalizedUrl = normalizeUrl(urlObject);
 
             if (UrlRepository.findByName(normalizedUrl).isPresent()) {
-                renderUrlsPageWithError(ctx, 409, "Страница уже существует");
+                renderUrlsPageWithInfo(ctx, 409, "Страница уже существует");
                 return;
             }
 
             var url = new Url(normalizedUrl);
             UrlRepository.save(url);
             ctx.sessionAttribute("flash", "Страница успешно добавлена");
+            ctx.sessionAttribute("flashType", "success");
             ctx.redirect(NamedRoutes.urlsPath());
 
 
@@ -70,7 +72,8 @@ public class UrlsController {
         var url = UrlRepository.find(id)
                 .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
         String flash = ctx.consumeSessionAttribute("flash");
-        var page = new UrlPage(url, flash);
+        String flashType = ctx.consumeSessionAttribute("flashType");
+        var page = new UrlPage(url, flash, flashType);
         ctx.render("urls/show.jte", model("page", page));
     }
 
@@ -111,9 +114,11 @@ public class UrlsController {
             UrlCheckRepository.save(urlCheck);
 
             ctx.sessionAttribute("flash", "Страница успешно проверена");
+            ctx.sessionAttribute("flashType", "success");
 
         } catch (UnirestException e) {
             ctx.sessionAttribute("flash", "Ошибка при проверке страницы: " + e.getMessage());
+            ctx.sessionAttribute("flashType", "danger");
         }
 
         ctx.redirect(NamedRoutes.urlPath(id));
@@ -132,14 +137,14 @@ public class UrlsController {
 
     private static void renderMainPageWithError(Context ctx, int status, String errorMessage) {
         ctx.status(status);
-        var page = new MainPage(errorMessage);
+        var page = new MainPage(errorMessage, "danger");
         ctx.render("index.jte", model("page", page));
     }
 
-    private static void renderUrlsPageWithError(Context ctx, int status, String errorMessage) throws SQLException {
+    private static void renderUrlsPageWithInfo(Context ctx, int status, String errorMessage) throws SQLException {
         ctx.status(status);
         var urls = UrlRepository.getEntities();
-        var page = new UrlsPage(urls, errorMessage);
+        var page = new UrlsPage(urls, errorMessage, "info");
         ctx.render("urls/index.jte", model("page", page));
     }
 }

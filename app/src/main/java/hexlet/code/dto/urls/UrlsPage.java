@@ -10,5 +10,6 @@ import java.util.List;
 @Getter
 public class UrlsPage {
     private List<Url> urls;
-    String flash;
+    private String flash;
+    private String flashType;
 }

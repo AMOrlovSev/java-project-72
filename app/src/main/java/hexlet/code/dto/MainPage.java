@@ -6,5 +6,6 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public class MainPage {
-    String flash;
+    private String flash;
+    private String flashType;
 }
