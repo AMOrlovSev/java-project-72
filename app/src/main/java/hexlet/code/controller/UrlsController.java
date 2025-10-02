@@ -1,6 +1,5 @@
 package hexlet.code.controller;
 
-import hexlet.code.dto.MainPage;
 import hexlet.code.dto.urls.UrlPage;
 import hexlet.code.dto.urls.UrlsPage;
 import hexlet.code.model.Url;
@@ -32,35 +31,46 @@ public class UrlsController {
         ctx.render("urls/index.jte", model("page", page));
     }
 
+
     public static void create(Context ctx) throws SQLException {
         var urlInput = ctx.formParam("url");
+        System.out.println("Received URL: " + urlInput); // Debug
+
+        if (urlInput == null || urlInput.trim().isEmpty()) {
+            System.out.println("URL is empty"); // Debug
+            setFlashAndRedirect(ctx, "URL не может быть пустым", "danger", NamedRoutes.rootPath());
+            return;
+        }
 
         URI uri;
         try {
             uri = new URI(urlInput.trim());
+            System.out.println("Parsed URI: " + uri); // Debug
         } catch (URISyntaxException e) {
-            renderMainPageWithError(ctx, 400, "Некорректный URL");
+            System.out.println("URI syntax exception: " + e.getMessage()); // Debug
+            setFlashAndRedirect(ctx, "Некорректный URL", "danger", NamedRoutes.rootPath());
             return;
         }
 
         if (!uri.isAbsolute()) {
-            renderMainPageWithError(ctx, 400, "Некорректный URL");
+            System.out.println("URI is not absolute"); // Debug
+            setFlashAndRedirect(ctx, "Некорректный URL", "danger", NamedRoutes.rootPath());
             return;
         }
 
         String normalizedUrl = normalizeUrl(uri);
+        System.out.println("Normalized URL: " + normalizedUrl); // Debug
 
         if (UrlRepository.findByName(normalizedUrl).isPresent()) {
-            renderUrlsPageWithInfo(ctx, 409, "Страница уже существует");
+            setFlashAndRedirect(ctx, "Страница уже существует", "info", NamedRoutes.urlsPath());
             return;
         }
 
         var url = new Url(normalizedUrl);
         UrlRepository.save(url);
-        ctx.sessionAttribute("flash", "Страница успешно добавлена");
-        ctx.sessionAttribute("flashType", "success");
-        ctx.redirect(NamedRoutes.urlsPath());
+        setFlashAndRedirect(ctx, "Страница успешно добавлена", "success", NamedRoutes.urlsPath());
     }
+
 
     public static void show(Context ctx) throws SQLException {
         var id = ctx.pathParamAsClass("id", Long.class).get();
@@ -72,6 +82,7 @@ public class UrlsController {
         ctx.render("urls/show.jte", model("page", page));
     }
 
+
     public static void check(Context ctx) throws SQLException {
         var id = ctx.pathParamAsClass("id", Long.class).get();
 
@@ -82,9 +93,8 @@ public class UrlsController {
         try {
             response = Unirest.get(url.getName()).asString();
         } catch (UnirestException e) {
-            ctx.sessionAttribute("flash", "Ошибка при проверке страницы: " + e.getMessage());
-            ctx.sessionAttribute("flashType", "danger");
-            ctx.redirect(NamedRoutes.urlPath(id));
+            setFlashAndRedirect(ctx, "Ошибка при проверке страницы: "
+                    + e.getMessage(), "danger", NamedRoutes.urlPath(id));
             return;
         }
 
@@ -114,13 +124,16 @@ public class UrlsController {
         var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
         UrlCheckRepository.save(urlCheck);
 
-        ctx.sessionAttribute("flash", "Страница успешно проверена");
-        ctx.sessionAttribute("flashType", "success");
-        ctx.redirect(NamedRoutes.urlPath(id));
+        setFlashAndRedirect(ctx, "Страница успешно проверена", "success", NamedRoutes.urlPath(id));
     }
 
 
-
+    private static void setFlashAndRedirect(Context ctx, String message, String type, String path) {
+        ctx.sessionAttribute("flash", message);
+        ctx.sessionAttribute("flashType", type);
+        System.out.println("Redirecting to: " + path + " with message: " + message); // Debug
+        ctx.redirect(path);
+    }
 
     private static String normalizeUrl(URI uri) {
         String scheme = uri.getScheme().toLowerCase();
@@ -136,19 +149,6 @@ public class UrlsController {
 
     private static int getDefaultPort(String scheme) {
         return scheme.equals("https") ? 443 : 80;
-    }
-
-    private static void renderMainPageWithError(Context ctx, int status, String errorMessage) {
-        ctx.status(status);
-        var page = new MainPage(errorMessage, "danger");
-        ctx.render("index.jte", model("page", page));
-    }
-
-    private static void renderUrlsPageWithInfo(Context ctx, int status, String errorMessage) throws SQLException {
-        ctx.status(status);
-        var urls = UrlRepository.getEntities();
-        var page = new UrlsPage(urls, errorMessage, "info");
-        ctx.render("urls/index.jte", model("page", page));
     }
 }
 

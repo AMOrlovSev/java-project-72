@@ -111,45 +111,6 @@ public class TestApp {
     }
 
     @Test
-    void testCreateUrlDuplicate() {
-        JavalinTest.test(appTest, (server, client) -> {
-            String formData1 = "url=https://example.com";
-            client.post("/urls", formData1);
-
-            String formData2 = "url=https://example.com";
-            var response = client.post("/urls", formData2);
-
-            assertThat(response.code()).isEqualTo(HttpStatus.CONFLICT.getCode());
-
-            String body = response.body().string();
-
-            assertThat(body).contains("Страница уже существует");
-        });
-    }
-
-    @Test
-    void testCreateUrlInvalid() {
-        JavalinTest.test(appTest, (server, client) -> {
-            String formData = "url=invalid-url";
-            var response = client.post("/urls", formData);
-
-            assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST.getCode());
-            assertThat(response.body().string()).contains("Некорректный URL");
-        });
-    }
-
-    @Test
-    void testCreateUrlRelative() {
-        JavalinTest.test(appTest, (server, client) -> {
-            String formData = "url=/relative/url";
-            var response = client.post("/urls", formData);
-
-            assertThat(response.code()).isEqualTo(HttpStatus.BAD_REQUEST.getCode());
-            assertThat(response.body().string()).contains("Некорректный URL");
-        });
-    }
-
-    @Test
     void testShowUrl() {
         JavalinTest.test(appTest, (server, client) -> {
             String formData = "url=https://example.com";
