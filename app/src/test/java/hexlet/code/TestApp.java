@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import hexlet.code.controller.RootController;
 import hexlet.code.controller.UrlsController;
 import hexlet.code.model.Url;
+import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.BaseRepository;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 
 import static hexlet.code.App.createTemplateEngine;
 import static hexlet.code.App.readResourceFile;
@@ -621,5 +623,78 @@ public class TestApp {
             assertThat(check.getH1()).isEqualTo("Заголовок с 𝕌nicode");
             assertThat(check.getDescription()).isEqualTo("Описание с émojis 🚀 и <тегами>");
         });
+    }
+
+    @Test
+    void testBaseRepositoryDataSource() {
+        assertThat(BaseRepository.dataSource).isNotNull();
+
+        JavalinTest.test(appTest, (server, client) -> {
+            try {
+                var connection = BaseRepository.dataSource.getConnection();
+                assertThat(connection).isNotNull();
+                assertThat(connection.isValid(1)).isTrue();
+                connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Test
+    void testAppReadResourceFile() throws IOException {
+        var content = App.readResourceFile("schema.sql");
+        assertThat(content).isNotNull();
+        assertThat(content).contains("CREATE TABLE");
+        assertThat(content).contains("urls");
+        assertThat(content).contains("url_checks");
+    }
+
+    @Test
+    void testUrlModel() {
+        var url = new Url("https://test-model.com");
+
+        assertThat(url.getName()).isEqualTo("https://test-model.com");
+        assertThat(url.getUrlChecks()).isNotNull();
+        assertThat(url.getUrlChecks().size()).isEqualTo(0);
+
+        url.setId(1L);
+        url.setCreatedAt(LocalDateTime.now());
+
+        assertThat(url.getId()).isEqualTo(1L);
+        assertThat(url.getCreatedAt()).isNotNull();
+
+        var check = new UrlCheck(200, "Title", "H1", "Description", 1L);
+        url.addCheck(check);
+
+        assertThat(url.getUrlChecks().size()).isEqualTo(1);
+        assertThat(url.getUrlChecks().get(0)).isEqualTo(check);
+        assertThat(check.getUrlId()).isEqualTo(1L);
+    }
+
+    @Test
+    void testRootControllerWithFlashMessages() {
+        JavalinTest.test(appTest, (server, client) -> {
+            var response = client.get(NamedRoutes.rootPath());
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
+
+            var body = response.body().string();
+            assertThat(body).contains("Анализатор страниц");
+            assertThat(body).contains("Бесплатно проверяйте сайты на SEO пригодность");
+            assertThat(body).contains("ссылка");
+            assertThat(body).contains("Проверить");
+        });
+    }
+
+    @Test
+    void testNamedRoutesAllMethods() {
+        assertThat(NamedRoutes.rootPath()).isEqualTo("/");
+        assertThat(NamedRoutes.urlsPath()).isEqualTo("/urls");
+
+        assertThat(NamedRoutes.urlPath(123L)).isEqualTo("/urls/123");
+        assertThat(NamedRoutes.urlChecksPath(456L)).isEqualTo("/urls/456/checks");
+
+        assertThat(NamedRoutes.urlPath("789")).isEqualTo("/urls/789");
+        assertThat(NamedRoutes.urlChecksPath("999")).isEqualTo("/urls/999/checks");
     }
 }
