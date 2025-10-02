@@ -429,4 +429,197 @@ public class TestApp {
                     .contains("Second Check");
         });
     }
+
+    @Test
+    void testUrlCheckWithMissingSeoElements() throws SQLException {
+        String htmlContent = """
+                <!DOCTYPE html>
+                <html>
+                <body>
+                    <p>Page without title, h1 and description</p>
+                </body>
+                </html>
+                """;
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(htmlContent)
+                .setResponseCode(HttpStatus.OK.getCode()));
+
+        String mockUrl = mockWebServer.url("/").toString();
+
+        JavalinTest.test(appTest, (server, client) -> {
+            String formData = "url=" + mockUrl;
+            client.post(NamedRoutes.urlsPath(), formData);
+
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
+
+            var checkResponse = client.post(NamedRoutes.urlChecksPath(urlId));
+            assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
+
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(1);
+
+            var check = checks.get(0);
+            assertThat(check.getStatusCode()).isEqualTo(HttpStatus.OK.getCode());
+            assertThat(check.getTitle()).isEmpty();
+            assertThat(check.getH1()).isEmpty();
+            assertThat(check.getDescription()).isEmpty();
+
+            var showResponse = client.get(NamedRoutes.urlPath(urlId));
+            var showBody = showResponse.body().string();
+            assertThat(showBody)
+                    .contains("200")
+                    .doesNotContain("Test Page Title")
+                    .doesNotContain("Test H1 Header")
+                    .doesNotContain("Test page description");
+        });
+    }
+
+    @Test
+    void testUrlCheckWithRedirect() throws SQLException {
+        String finalHtmlContent = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Final Page After Redirect</title>
+                </head>
+                <body>
+                    <h1>Redirected Page</h1>
+                </body>
+                </html>
+                """;
+
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(HttpStatus.MOVED_PERMANENTLY.getCode())
+                .setHeader("Location", mockWebServer.url("/final")));
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(finalHtmlContent)
+                .setResponseCode(HttpStatus.OK.getCode()));
+
+        String mockUrl = mockWebServer.url("/").toString();
+
+        JavalinTest.test(appTest, (server, client) -> {
+            String formData = "url=" + mockUrl;
+            client.post(NamedRoutes.urlsPath(), formData);
+
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
+
+            var checkResponse = client.post(NamedRoutes.urlChecksPath(urlId));
+            assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
+
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(1);
+
+            var check = checks.get(0);
+            assertThat(check.getStatusCode()).isEqualTo(HttpStatus.OK.getCode());
+            assertThat(check.getTitle()).isEqualTo("Final Page After Redirect");
+            assertThat(check.getH1()).isEqualTo("Redirected Page");
+        });
+    }
+
+    @Test
+    void testUrlCheckOrdering() throws SQLException {
+        String htmlContent1 = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>First Check</title>
+                </head>
+                <body></body>
+                </html>
+                """;
+
+        String htmlContent2 = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Second Check</title>
+                </head>
+                <body></body>
+                </html>
+                """;
+
+        String htmlContent3 = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Third Check</title>
+                </head>
+                <body></body>
+                </html>
+                """;
+
+        mockWebServer.enqueue(new MockResponse().setBody(htmlContent1).setResponseCode(HttpStatus.OK.getCode()));
+        mockWebServer.enqueue(new MockResponse().setBody(htmlContent2).setResponseCode(HttpStatus.OK.getCode()));
+        mockWebServer.enqueue(new MockResponse().setBody(htmlContent3).setResponseCode(HttpStatus.OK.getCode()));
+
+        String mockUrl = mockWebServer.url("/").toString();
+
+        JavalinTest.test(appTest, (server, client) -> {
+            String formData = "url=" + mockUrl;
+            client.post(NamedRoutes.urlsPath(), formData);
+
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
+
+            client.post(NamedRoutes.urlChecksPath(urlId));
+            client.post(NamedRoutes.urlChecksPath(urlId));
+            client.post(NamedRoutes.urlChecksPath(urlId));
+
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(3);
+
+            assertThat(checks.get(0).getTitle()).isEqualTo("Third Check");
+            assertThat(checks.get(1).getTitle()).isEqualTo("Second Check");
+            assertThat(checks.get(2).getTitle()).isEqualTo("First Check");
+        });
+    }
+
+    @Test
+    void testUrlWithSpecialCharacters() throws SQLException {
+        String htmlContent = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Страница с кириллицей &amp; символами</title>
+                    <meta name="description" content="Описание с émojis 🚀 и <тегами>">
+                </head>
+                <body>
+                    <h1>Заголовок с 𝕌nicode</h1>
+                </body>
+                </html>
+                """;
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(htmlContent)
+                .setResponseCode(HttpStatus.OK.getCode()));
+
+        String mockUrl = mockWebServer.url("/").toString();
+
+        JavalinTest.test(appTest, (server, client) -> {
+            String formData = "url=" + mockUrl;
+            client.post(NamedRoutes.urlsPath(), formData);
+
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
+
+            var checkResponse = client.post(NamedRoutes.urlChecksPath(urlId));
+            assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
+
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(1);
+
+            var check = checks.get(0);
+            assertThat(check.getTitle()).isEqualTo("Страница с кириллицей & символами");
+            assertThat(check.getH1()).isEqualTo("Заголовок с 𝕌nicode");
+            assertThat(check.getDescription()).isEqualTo("Описание с émojis 🚀 и <тегами>");
+        });
+    }
 }
