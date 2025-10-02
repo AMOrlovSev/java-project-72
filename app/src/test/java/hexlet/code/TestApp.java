@@ -104,7 +104,7 @@ public class TestApp {
             var requestBody = "url=https://example.com";
             var response = client.post("/urls", requestBody);
 
-            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
             assertThat(response.body().string()).contains("https://example.com");
 
             try {
@@ -123,7 +123,7 @@ public class TestApp {
             var requestBody = "url=invalid-url";
             var response = client.post("/urls", requestBody);
 
-            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
 
             try {
                 var url = UrlRepository.findByName("invalid-url");
@@ -140,7 +140,7 @@ public class TestApp {
             var requestBody = "url=";
             var response = client.post("/urls", requestBody);
 
-            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
             try {
                 var url = UrlRepository.findByName("");
                 assertThat(url).isEmpty();
@@ -160,7 +160,7 @@ public class TestApp {
             var requestBody = "url=https://example.com";
             var response = client.post("/urls", requestBody);
 
-            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
 
             var countAfter = UrlRepository.getEntities().size();
             assertThat(countAfter).isEqualTo(countBefore);
@@ -184,7 +184,6 @@ public class TestApp {
     @Test
     void testShowUrlDetails() {
         JavalinTest.test(appTest, (server, client) -> {
-            // Сначала создаем URL и получаем его ID
             String urlName = "https://show-details-test.com";
             var url = new Url(urlName);
             try {
@@ -261,7 +260,6 @@ public class TestApp {
         });
     }
 
-
     @Test
     void testUrlCheckSuccess() throws SQLException {
         String htmlContent = """
@@ -280,7 +278,7 @@ public class TestApp {
 
         mockWebServer.enqueue(new MockResponse()
                 .setBody(htmlContent)
-                .setResponseCode(200));
+                .setResponseCode(HttpStatus.OK.getCode()));
 
         String mockUrl = mockWebServer.url("/").toString();
 
@@ -300,7 +298,7 @@ public class TestApp {
             assertThat(checks.size()).isEqualTo(1);
 
             var check = checks.get(0);
-            assertThat(check.getStatusCode()).isEqualTo(200);
+            assertThat(check.getStatusCode()).isEqualTo(HttpStatus.OK.getCode());
             assertThat(check.getTitle()).isEqualTo("Test Page Title");
             assertThat(check.getH1()).isEqualTo("Test H1 Header");
             assertThat(check.getDescription()).isEqualTo("Test page description");
@@ -317,7 +315,7 @@ public class TestApp {
 
     @Test
     void testUrlCheckWith404Error() throws SQLException {
-        mockWebServer.enqueue(new MockResponse().setResponseCode(404));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.NOT_FOUND.getCode()));
 
         String mockUrl = mockWebServer.url("/").toString();
 
@@ -334,7 +332,7 @@ public class TestApp {
 
             var checks = UrlCheckRepository.findByUrlId(urlId);
             assertThat(checks.size()).isEqualTo(1);
-            assertThat(checks.get(0).getStatusCode()).isEqualTo(404);
+            assertThat(checks.get(0).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND.getCode());
 
             var showResponse = client.get("/urls/" + urlId);
             var showBody = showResponse.body().string();
@@ -344,7 +342,7 @@ public class TestApp {
 
     @Test
     void testUrlCheckWithServerError() throws SQLException {
-        mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.getCode()));
 
         String mockUrl = mockWebServer.url("/").toString();
 
@@ -361,7 +359,7 @@ public class TestApp {
 
             var checks = UrlCheckRepository.findByUrlId(urlId);
             assertThat(checks.size()).isEqualTo(1);
-            assertThat(checks.get(0).getStatusCode()).isEqualTo(500);
+            assertThat(checks.get(0).getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.getCode());
 
             var showResponse = client.get("/urls/" + urlId);
             var showBody = showResponse.body().string();
@@ -399,8 +397,8 @@ public class TestApp {
                 </html>
                 """;
 
-        mockWebServer.enqueue(new MockResponse().setBody(htmlContent1).setResponseCode(200));
-        mockWebServer.enqueue(new MockResponse().setBody(htmlContent2).setResponseCode(200));
+        mockWebServer.enqueue(new MockResponse().setBody(htmlContent1).setResponseCode(HttpStatus.OK.getCode()));
+        mockWebServer.enqueue(new MockResponse().setBody(htmlContent2).setResponseCode(HttpStatus.OK.getCode()));
 
         String mockUrl = mockWebServer.url("/").toString();
 
