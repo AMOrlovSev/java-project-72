@@ -92,39 +92,39 @@ public class UrlsController {
         HttpResponse<String> response;
         try {
             response = Unirest.get(url.getName()).asString();
+
+            int statusCode = response.getStatus();
+            String htmlContent = response.getBody();
+
+            Document doc = Jsoup.parse(htmlContent);
+
+            String title = "";
+            Element titleElement = doc.selectFirst("title");
+            if (titleElement != null) {
+                title = titleElement.text().trim();
+            }
+
+            String h1 = "";
+            Element h1Element = doc.selectFirst("h1");
+            if (h1Element != null) {
+                h1 = h1Element.text().trim();
+            }
+
+            String description = "";
+            Element metaDescription = doc.selectFirst("meta[name=description]");
+            if (metaDescription != null) {
+                description = metaDescription.attr("content").trim();
+            }
+
+            var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
+            UrlCheckRepository.save(urlCheck);
+
+            setFlashAndRedirect(ctx, "Страница успешно проверена", "success", NamedRoutes.urlPath(id));
+
         } catch (UnirestException e) {
             setFlashAndRedirect(ctx, "Ошибка при проверке страницы: "
                     + e.getMessage(), "danger", NamedRoutes.urlPath(id));
-            return;
         }
-
-        int statusCode = response.getStatus();
-        String htmlContent = response.getBody();
-
-        Document doc = Jsoup.parse(htmlContent);
-
-        String title = "";
-        Element titleElement = doc.selectFirst("title");
-        if (titleElement != null) {
-            title = titleElement.text().trim();
-        }
-
-        String h1 = "";
-        Element h1Element = doc.selectFirst("h1");
-        if (h1Element != null) {
-            h1 = h1Element.text().trim();
-        }
-
-        String description = "";
-        Element metaDescription = doc.selectFirst("meta[name=description]");
-        if (metaDescription != null) {
-            description = metaDescription.attr("content").trim();
-        }
-
-        var urlCheck = new UrlCheck(statusCode, title, h1, description, id);
-        UrlCheckRepository.save(urlCheck);
-
-        setFlashAndRedirect(ctx, "Страница успешно проверена", "success", NamedRoutes.urlPath(id));
     }
 
 
