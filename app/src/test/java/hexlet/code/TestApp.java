@@ -4,7 +4,10 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import hexlet.code.controller.RootController;
 import hexlet.code.controller.UrlsController;
+import hexlet.code.model.Url;
 import hexlet.code.repository.BaseRepository;
+import hexlet.code.repository.UrlCheckRepository;
+import hexlet.code.repository.UrlRepository;
 import hexlet.code.util.NamedRoutes;
 import io.javalin.Javalin;
 import io.javalin.http.HttpStatus;
@@ -98,15 +101,69 @@ public class TestApp {
     @Test
     void testCreateUrlSuccess() {
         JavalinTest.test(appTest, (server, client) -> {
-            String formData = "url=https://example.com";
+            var requestBody = "url=https://example.com";
+            var response = client.post("/urls", requestBody);
 
-            var response = client.post("/urls", formData);
+            assertThat(response.code()).isEqualTo(200);
+            assertThat(response.body().string()).contains("https://example.com");
 
-            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
+            try {
+                var url = UrlRepository.findByName("https://example.com");
+                assertThat(url).isPresent();
+                assertThat(url.get().getName()).isEqualTo("https://example.com");
+            } catch (SQLException e) {
+                throw new RuntimeException("Database error during test", e);
+            }
+        });
+    }
 
-            var redirectResponse = client.get("/urls");
-            var responseBody = redirectResponse.body().string();
-            assertThat(responseBody).contains("https://example.com");
+    @Test
+    public void testCreateUrlWithInvalidUrl() {
+        JavalinTest.test(appTest, (server, client) -> {
+            var requestBody = "url=invalid-url";
+            var response = client.post("/urls", requestBody);
+
+            assertThat(response.code()).isEqualTo(200);
+
+            try {
+                var url = UrlRepository.findByName("invalid-url");
+                assertThat(url).isEmpty();
+            } catch (SQLException e) {
+                throw new RuntimeException("Database error during test", e);
+            }
+        });
+    }
+
+    @Test
+    public void testCreateUrlWithEmptyUrl() {
+        JavalinTest.test(appTest, (server, client) -> {
+            var requestBody = "url=";
+            var response = client.post("/urls", requestBody);
+
+            assertThat(response.code()).isEqualTo(200);
+            try {
+                var url = UrlRepository.findByName("");
+                assertThat(url).isEmpty();
+            } catch (SQLException e) {
+                throw new RuntimeException("Database error during test", e);
+            }
+        });
+    }
+
+    @Test
+    public void testCreateDuplicateUrl() {
+        JavalinTest.test(appTest, (server, client) -> {
+            var url = new Url("https://example.com");
+            UrlRepository.save(url);
+            var countBefore = UrlRepository.getEntities().size();
+
+            var requestBody = "url=https://example.com";
+            var response = client.post("/urls", requestBody);
+
+            assertThat(response.code()).isEqualTo(200);
+
+            var countAfter = UrlRepository.getEntities().size();
+            assertThat(countAfter).isEqualTo(countBefore);
         });
     }
 
@@ -127,29 +184,34 @@ public class TestApp {
     @Test
     void testShowUrlDetails() {
         JavalinTest.test(appTest, (server, client) -> {
+            // Сначала создаем URL и получаем его ID
             String urlName = "https://show-details-test.com";
-            String formData = "url=" + urlName;
-            client.post("/urls", formData);
+            var url = new Url(urlName);
+            try {
+                UrlRepository.save(url);
+                Long urlId = url.getId();
 
-            var response = client.get("/urls/1");
-            assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
+                var response = client.get("/urls/" + urlId);
+                assertThat(response.code()).isEqualTo(HttpStatus.OK.getCode());
 
-            String body = response.body().string();
+                String body = response.body().string();
 
-            assertThat(body)
-                    .contains("Сайт: " + urlName)
-                    .contains("ID")
-                    .contains("Имя")
-                    .contains("Дата создания")
-                    .contains(urlName)
-                    .contains("Проверки");
+                assertThat(body)
+                        .contains(urlName)
+                        .contains("ID")
+                        .contains("Имя")
+                        .contains("Дата создания")
+                        .contains("Проверки");
+            } catch (SQLException e) {
+                throw new RuntimeException("Database error during test", e);
+            }
         });
     }
 
     @Test
     void testShowUrlNotFound() {
         JavalinTest.test(appTest, (server, client) -> {
-            var response = client.get("/urls/999");
+            var response = client.get("/urls/999999");
             assertThat(response.code()).isEqualTo(HttpStatus.NOT_FOUND.getCode());
         });
     }
@@ -200,23 +262,21 @@ public class TestApp {
     }
 
 
-
-
     @Test
     void testUrlCheckSuccess() throws SQLException {
         String htmlContent = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Test Page Title</title>
-                <meta name="description" content="Test page description">
-            </head>
-            <body>
-                <h1>Test H1 Header</h1>
-                <p>Some content</p>
-            </body>
-            </html>
-            """;
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Test Page Title</title>
+                    <meta name="description" content="Test page description">
+                </head>
+                <body>
+                    <h1>Test H1 Header</h1>
+                    <p>Some content</p>
+                </body>
+                </html>
+                """;
 
         mockWebServer.enqueue(new MockResponse()
                 .setBody(htmlContent)
@@ -225,19 +285,27 @@ public class TestApp {
         String mockUrl = mockWebServer.url("/").toString();
 
         JavalinTest.test(appTest, (server, client) -> {
-
             String formData = "url=" + mockUrl;
             var createResponse = client.post("/urls", formData);
             assertThat(createResponse.code()).isEqualTo(HttpStatus.OK.getCode());
 
-            var urlsResponse = client.get("/urls");
-            var urlsBody = urlsResponse.body().string();
-            assertThat(urlsBody).contains(mockUrl.replaceFirst("/$", ""));
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
 
-            var checkResponse = client.post("/urls/1/checks");
+            var checkResponse = client.post("/urls/" + urlId + "/checks");
             assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
 
-            var showResponse = client.get("/urls/1");
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(1);
+
+            var check = checks.get(0);
+            assertThat(check.getStatusCode()).isEqualTo(200);
+            assertThat(check.getTitle()).isEqualTo("Test Page Title");
+            assertThat(check.getH1()).isEqualTo("Test H1 Header");
+            assertThat(check.getDescription()).isEqualTo("Test page description");
+
+            var showResponse = client.get("/urls/" + urlId);
             var showBody = showResponse.body().string();
             assertThat(showBody)
                     .contains("200")
@@ -257,10 +325,18 @@ public class TestApp {
             String formData = "url=" + mockUrl;
             client.post("/urls", formData);
 
-            var checkResponse = client.post("/urls/1/checks");
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
+
+            var checkResponse = client.post("/urls/" + urlId + "/checks");
             assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
 
-            var showResponse = client.get("/urls/1");
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(1);
+            assertThat(checks.get(0).getStatusCode()).isEqualTo(404);
+
+            var showResponse = client.get("/urls/" + urlId);
             var showBody = showResponse.body().string();
             assertThat(showBody).contains("404");
         });
@@ -276,10 +352,18 @@ public class TestApp {
             String formData = "url=" + mockUrl;
             client.post("/urls", formData);
 
-            var checkResponse = client.post("/urls/1/checks");
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
+
+            var checkResponse = client.post("/urls/" + urlId + "/checks");
             assertThat(checkResponse.code()).isEqualTo(HttpStatus.OK.getCode());
 
-            var showResponse = client.get("/urls/1");
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(1);
+            assertThat(checks.get(0).getStatusCode()).isEqualTo(500);
+
+            var showResponse = client.get("/urls/" + urlId);
             var showBody = showResponse.body().string();
             assertThat(showBody).contains("500");
         });
@@ -288,7 +372,7 @@ public class TestApp {
     @Test
     void testUrlCheckForNonExistentUrl() {
         JavalinTest.test(appTest, (server, client) -> {
-            var response = client.post("/urls/999/checks");
+            var response = client.post("/urls/999999/checks");
             assertThat(response.code()).isEqualTo(HttpStatus.NOT_FOUND.getCode());
         });
     }
@@ -296,24 +380,24 @@ public class TestApp {
     @Test
     void testMultipleUrlChecks() throws SQLException {
         String htmlContent1 = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>First Check</title>
-            </head>
-            <body></body>
-            </html>
-            """;
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>First Check</title>
+                </head>
+                <body></body>
+                </html>
+                """;
 
         String htmlContent2 = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Second Check</title>
-            </head>
-            <body></body>
-            </html>
-            """;
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Second Check</title>
+                </head>
+                <body></body>
+                </html>
+                """;
 
         mockWebServer.enqueue(new MockResponse().setBody(htmlContent1).setResponseCode(200));
         mockWebServer.enqueue(new MockResponse().setBody(htmlContent2).setResponseCode(200));
@@ -324,11 +408,22 @@ public class TestApp {
             String formData = "url=" + mockUrl;
             client.post("/urls", formData);
 
-            client.post("/urls/1/checks");
+            var savedUrl = UrlRepository.findByName(mockUrl.replaceFirst("/$", ""))
+                    .orElseThrow(() -> new RuntimeException("URL not found after save"));
+            Long urlId = savedUrl.getId();
 
-            client.post("/urls/1/checks");
+            client.post("/urls/" + urlId + "/checks");
+            client.post("/urls/" + urlId + "/checks");
 
-            var showResponse = client.get("/urls/1");
+            var checks = UrlCheckRepository.findByUrlId(urlId);
+            assertThat(checks.size()).isEqualTo(2);
+
+            boolean hasFirstCheck = checks.stream().anyMatch(check -> "First Check".equals(check.getTitle()));
+            boolean hasSecondCheck = checks.stream().anyMatch(check -> "Second Check".equals(check.getTitle()));
+            assertThat(hasFirstCheck).isTrue();
+            assertThat(hasSecondCheck).isTrue();
+
+            var showResponse = client.get("/urls/" + urlId);
             var showBody = showResponse.body().string();
             assertThat(showBody)
                     .contains("First Check")
