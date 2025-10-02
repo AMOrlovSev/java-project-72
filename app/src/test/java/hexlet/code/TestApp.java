@@ -2,7 +2,10 @@ package hexlet.code;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import hexlet.code.controller.RootController;
+import hexlet.code.controller.UrlsController;
 import hexlet.code.repository.BaseRepository;
+import hexlet.code.util.NamedRoutes;
 import io.javalin.Javalin;
 import io.javalin.http.HttpStatus;
 import io.javalin.rendering.template.JavalinJte;
@@ -63,11 +66,13 @@ public class TestApp {
             ctx.contentType("text/html; charset=utf-8");
         });
 
-        appTest.get("/", hexlet.code.controller.RootController::index);
-        appTest.get("/urls", hexlet.code.controller.UrlsController::index);
-        appTest.post("/urls", hexlet.code.controller.UrlsController::create);
-        appTest.get("/urls/{id}", hexlet.code.controller.UrlsController::show);
-        appTest.post("/urls/{id}/checks", hexlet.code.controller.UrlsController::check);
+        appTest.get(NamedRoutes.rootPath(), RootController::index);
+
+        appTest.get(NamedRoutes.urlsPath(), UrlsController::index);
+        appTest.post(NamedRoutes.urlsPath(), UrlsController::create);
+        appTest.get(NamedRoutes.urlPath("{id}"), UrlsController::show);
+
+        appTest.post(NamedRoutes.urlChecksPath("{id}"), UrlsController::check);
     }
 
     @Test

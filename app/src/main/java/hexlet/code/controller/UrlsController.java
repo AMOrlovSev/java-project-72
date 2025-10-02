@@ -7,6 +7,7 @@ import hexlet.code.model.Url;
 import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
+import hexlet.code.util.NamedRoutes;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import kong.unirest.core.HttpResponse;
@@ -54,7 +55,7 @@ public class UrlsController {
             var url = new Url(normalizedUrl);
             UrlRepository.save(url);
             ctx.sessionAttribute("flash", "Страница успешно добавлена");
-            ctx.redirect("/urls");
+            ctx.redirect(NamedRoutes.urlsPath());
 
 
         } catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
@@ -115,7 +116,7 @@ public class UrlsController {
             ctx.sessionAttribute("flash", "Ошибка при проверке страницы: " + e.getMessage());
         }
 
-        ctx.redirect("/urls/" + id);
+        ctx.redirect(NamedRoutes.urlPath(id));
     }
 
 
